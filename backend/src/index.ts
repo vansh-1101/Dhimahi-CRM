@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import prisma from './lib/prisma';
 import authRoutes from './routes/auth';
 import clientRoutes from './routes/clients';
 import leadRoutes from './routes/leads';
@@ -48,6 +49,15 @@ app.use('/api/partners', partnerRoutes);
 
 app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/db-check', async (_req, res) => {
+    try {
+        const count = await prisma.client.count();
+        res.json({ status: 'connected', clientCount: count, dbUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET' });
+    } catch (error: any) {
+        res.status(500).json({ status: 'error', message: error.message, dbUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET' });
+    }
 });
 
 app.listen(PORT, () => {
