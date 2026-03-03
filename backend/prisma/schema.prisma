@@ -1,0 +1,297 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+  PARTNER
+}
+
+enum Constitution {
+  INDIVIDUAL
+  HUF
+  COMPANY
+  FIRM
+}
+
+enum ResidentStatus {
+  RESIDENT
+  NRI
+}
+
+enum LeadService {
+  INSURANCE
+  INVESTMENT
+  LOAN
+  BROKING
+  CREDIT_CARD
+}
+
+enum LeadSource {
+  WALKIN
+  WHATSAPP
+  REFERRAL
+  ONLINE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum InsuranceType {
+  LIFE
+  MEDICLAIM
+  VEHICLE
+  NON_LIFE
+}
+
+enum PremiumFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  ANNUAL
+}
+
+enum PolicyStatus {
+  ACTIVE
+  LAPSED
+  EXPIRED
+}
+
+enum InvestmentType {
+  SIP
+  LUMPSUM
+  PPF
+  NPS
+  FD
+}
+
+enum InvestmentStatus {
+  ACTIVE
+  PAUSED
+  REDEEMED
+}
+
+enum LoanType {
+  HOME
+  PERSONAL
+  CAR
+  BUSINESS
+  EDUCATION
+}
+
+enum LoanStatus {
+  ACTIVE
+  CLOSED
+  NPA
+}
+
+enum CreditCardStatus {
+  ACTIVE
+  BLOCKED
+  EXPIRED
+  CANCELLED
+}
+
+enum ActivityType {
+  CALL
+  MEETING
+  TASK
+  WHATSAPP
+  EMAIL
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         Role       @default(AGENT)
+  mobile       String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  leads        Lead[]     @relation("AssignedLeads")
+  activities   Activity[] @relation("CreatedActivities")
+
+  @@map("users")
+}
+
+model Partner {
+  id             String   @id @default(cuid())
+  name           String
+  mobile         String?
+  email          String?  @unique
+  commissionRate Float?   @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  clients        Client[]
+
+  @@map("partners")
+}
+
+model Client {
+  id                String          @id @default(cuid())
+  contactName       String
+  familyName        String?
+  contactPerson     String?
+  mobileNumber      String
+  panNumber         String?         @unique
+  nameAsPerPan      String?
+  aadharNumber      String?
+  dob               DateTime?
+  email             String?
+  motherName        String?
+  placeOfBirth      String?
+  annualIncome      Float?
+  landline          String?
+  constitution      Constitution    @default(INDIVIDUAL)
+  residentStatus    ResidentStatus  @default(RESIDENT)
+  gstNumber         String?
+  referenceName     String?
+  otherDescription  String?
+  hasGst            Boolean         @default(false)
+  otherServices     String[]        @default([])
+  mainInsuranceType String[]        @default([])
+  insuranceType     String[]        @default([])
+  associatePartnerId String?
+  associatePartner  Partner?        @relation(fields: [associatePartnerId], references: [id])
+  insurancePolicies InsurancePolicy[]
+  investments       Investment[]
+  loans             Loan[]
+  creditCards       CreditCard[]
+  activities        Activity[]
+  leads             Lead[]          @relation("ConvertedClient")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("clients")
+}
+
+model Lead {
+  id                String      @id @default(cuid())
+  name              String
+  phone             String?
+  email             String?
+  serviceInterested LeadService
+  source            LeadSource  @default(WALKIN)
+  status            LeadStatus  @default(NEW)
+  assignedToId      String?
+  assignedTo        User?       @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  followUpDate      DateTime?
+  notes             String?
+  convertedClientId String?
+  convertedClient   Client?     @relation("ConvertedClient", fields: [convertedClientId], references: [id])
+  activities        Activity[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@map("leads")
+}
+
+model InsurancePolicy {
+  id               String           @id @default(cuid())
+  clientId         String
+  client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  policyNumber     String?
+  insurerName      String
+  insuranceType    InsuranceType
+  subType          String?
+  sumAssured       Float?
+  premiumAmount    Float?
+  premiumFrequency PremiumFrequency @default(ANNUAL)
+  startDate        DateTime?
+  renewalDate      DateTime?
+  nomineeName      String?
+  status           PolicyStatus     @default(ACTIVE)
+  documentUrl      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@map("insurance_policies")
+}
+
+model Investment {
+  id           String           @id @default(cuid())
+  clientId     String
+  client       Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type         InvestmentType
+  fundName     String?
+  folioNumber  String?
+  amount       Float?
+  sipDate      Int?
+  startDate    DateTime?
+  endDate      DateTime?
+  currentValue Float?
+  unitsHeld    Float?
+  status       InvestmentStatus @default(ACTIVE)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@map("investments")
+}
+
+model Loan {
+  id                String     @id @default(cuid())
+  clientId          String
+  client            Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  loanType          LoanType
+  bankName          String?
+  loanAmount        Float?
+  disbursementDate  DateTime?
+  emiAmount         Float?
+  tenureMonths      Int?
+  interestRate      Float?
+  emiDate           Int?
+  outstandingAmount Float?
+  status            LoanStatus @default(ACTIVE)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@map("loans")
+}
+
+model CreditCard {
+  id              String           @id @default(cuid())
+  clientId        String
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  bankName        String
+  cardType        String?
+  creditLimit     Float?
+  cardNumber_last4 String?
+  expiryDate      DateTime?
+  status          CreditCardStatus @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("credit_cards")
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  clientId    String?
+  client      Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  leadId      String?
+  lead        Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type        ActivityType
+  subject     String
+  notes       String?
+  scheduledAt DateTime?
+  completedAt DateTime?
+  createdById String?
+  createdBy   User?        @relation("CreatedActivities", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("activities")
+}
