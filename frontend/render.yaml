@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: dhimahi-crm-frontend
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: https://dhimahi-crm-api.onrender.com
+    healthCheckPath: /
