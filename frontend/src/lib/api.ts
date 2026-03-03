@@ -19,7 +19,6 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
     const res = await fetch(`${API_BASE}${endpoint}`, {
         ...fetchOptions,
         headers,
-        credentials: 'include',
     });
 
     if (!res.ok) {
